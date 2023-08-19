@@ -64,8 +64,15 @@ fn setup(
         ..default()
     });
     // light
+    let light_position = Transform::from_xyz(3.0, 8.0, 5.0);
     commands.spawn(PointLightBundle {
-        transform: Transform::from_xyz(3.0, 8.0, 5.0),
+        transform: light_position.clone(),
+        ..default()
+    });
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+        material: materials.add(Color::WHITE.into()),
+        transform: light_position.clone(),
         ..default()
     });
 }
