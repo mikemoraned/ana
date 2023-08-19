@@ -1,10 +1,12 @@
 //! Shows how to create a 3D orthographic view (for isometric-look games or CAD applications).
 
 use bevy::{prelude::*, render::camera::ScalingMode};
+use bevy_panorbit_camera::{PanOrbitCameraPlugin,PanOrbitCamera};
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(PanOrbitCameraPlugin)
         .add_systems(Startup, setup)
         .run();
 }
@@ -16,16 +18,27 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // camera
-    commands.spawn(Camera3dBundle {
-        projection: OrthographicProjection {
-            scale: 3.0,
-            scaling_mode: ScalingMode::FixedVertical(2.0),
+    // commands.spawn((Camera3dBundle {
+    //     projection: OrthographicProjection {
+    //         scale: 3.0,
+    //         scaling_mode: ScalingMode::FixedVertical(2.0),
+    //         ..default()
+    //     }
+    //     .into(),
+    //     transform: Transform::from_xyz(5.0, 5.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+    //     ..default()
+    // },
+    // PanOrbitCamera::default()
+    // ));
+
+    commands.spawn((
+        Camera3dBundle {
+            transform: Transform::from_translation(Vec3::new(0.0, 1.5, 5.0)),
             ..default()
-        }
-        .into(),
-        transform: Transform::from_xyz(5.0, 5.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
+        },
+        PanOrbitCamera::default(),
+    ));
+    
 
     // plane
     commands.spawn(PbrBundle {
