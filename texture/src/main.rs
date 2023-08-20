@@ -11,20 +11,25 @@ use bevy::{
             Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
         },
         view::RenderLayers,
-    },
+    }, reflect::erased_serde::__private::serde::__private::de, text::{BreakLineOn, Text2dBounds},
 };
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, setup)
-        .add_systems(Update, (cube_rotator_system, rotator_system))
+        // .add_systems(Update, (cube_rotator_system, rotator_system))
+        .add_systems(Update, cube_rotator_system)
         .run();
 }
 
 // Marks the first pass cube (rendered to a texture.)
+// #[derive(Component)]
+// struct FirstPassCube;
+
+// Marks the first pass text (rendered to a texture.)
 #[derive(Component)]
-struct FirstPassCube;
+struct FirstPassText;
 
 // Marks the main pass cube, to which the texture is applied.
 #[derive(Component)]
@@ -35,6 +40,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
+    asset_server: Res<AssetServer>
 ) {
     let size = Extent3d {
         width: 512,
@@ -64,28 +70,28 @@ fn setup(
 
     let image_handle = images.add(image);
 
-    let cube_handle = meshes.add(Mesh::from(shape::Cube { size: 4.0 }));
-    let cube_material_handle = materials.add(StandardMaterial {
-        base_color: Color::rgb(0.8, 0.7, 0.6),
-        reflectance: 0.02,
-        unlit: false,
-        ..default()
-    });
+    // let cube_handle = meshes.add(Mesh::from(shape::Cube { size: 4.0 }));
+    // let cube_material_handle = materials.add(StandardMaterial {
+    //     base_color: Color::rgb(0.8, 0.7, 0.6),
+    //     reflectance: 0.02,
+    //     unlit: false,
+    //     ..default()
+    // });
 
     // This specifies the layer used for the first pass, which will be attached to the first pass camera and cube.
     let first_pass_layer = RenderLayers::layer(1);
 
     // The cube that will be rendered to the texture.
-    commands.spawn((
-        PbrBundle {
-            mesh: cube_handle,
-            material: cube_material_handle,
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
-            ..default()
-        },
-        FirstPassCube,
-        first_pass_layer,
-    ));
+    // commands.spawn((
+    //     PbrBundle {
+    //         mesh: cube_handle,
+    //         material: cube_material_handle,
+    //         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
+    //         ..default()
+    //     },
+    //     FirstPassCube,
+    //     first_pass_layer,
+    // ));
 
     // Light
     // NOTE: Currently lights are shared between passes - see https://github.com/bevyengine/bevy/issues/3462
@@ -94,24 +100,98 @@ fn setup(
         ..default()
     });
 
+    // commands.spawn((
+    //     Camera3dBundle {
+    //         camera_3d: Camera3d {
+    //             clear_color: ClearColorConfig::Custom(Color::WHITE),
+    //             ..default()
+    //         },
+    //         camera: Camera {
+    //             // render before the "main pass" camera
+    //             order: -1,
+    //             target: RenderTarget::Image(image_handle.clone()),
+    //             ..default()
+    //         },
+    //         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 15.0))
+    //             .looking_at(Vec3::ZERO, Vec3::Y),
+    //         ..default()
+    //     },
+    //     first_pass_layer,
+    // ));
+
+    // 2d text
+    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+    // let text_style = TextStyle {
+    //     font: font.clone(),
+    //     font_size: 60.0,
+    //     color: Color::WHITE,
+    // };
+    // let text_alignment = TextAlignment::Center;
+    // commands.spawn((
+    //     Text2dBundle {
+    //         text: Text::from_section("scale", text_style).with_alignment(text_alignment),
+    //         ..default()
+    //     },
+    //     FirstPassText,
+    //     first_pass_layer
+    // ));
+
+    // Demonstrate text wrapping
+    let slightly_smaller_text_style = TextStyle {
+        font,
+        font_size: 42.0,
+        color: Color::WHITE,
+    };
+    let box_size = Vec2::new(300.0, 200.0);
+    let box_position = Vec2::new(0.0, -250.0);
+    commands
+        .spawn(SpriteBundle {
+            sprite: Sprite {
+                color: Color::rgb(0.25, 0.25, 0.75),
+                custom_size: Some(Vec2::new(box_size.x, box_size.y)),
+                ..default()
+            },
+            transform: Transform::from_translation(box_position.extend(0.0)),
+            ..default()
+        })
+        .with_children(|builder| {
+            builder.spawn(Text2dBundle {
+                text: Text {
+                    sections: vec![TextSection::new(
+                        "this text wraps in the box\n(Unicode linebreaks)",
+                        slightly_smaller_text_style.clone(),
+                    )],
+                    alignment: TextAlignment::Left,
+                    linebreak_behavior: BreakLineOn::WordBoundary,
+                },
+                text_2d_bounds: Text2dBounds {
+                    // Wrap text in the rectangle
+                    size: box_size,
+                },
+                // ensure the text is drawn on top of the box
+                transform: Transform::from_translation(Vec3::Z),
+                ..default()
+            });
+        });
+
+    // 2d camera
     commands.spawn((
-        Camera3dBundle {
-            camera_3d: Camera3d {
+        Camera2dBundle {
+            camera_2d : Camera2d { 
                 clear_color: ClearColorConfig::Custom(Color::WHITE),
                 ..default()
             },
             camera: Camera {
                 // render before the "main pass" camera
-                order: -1,
-                target: RenderTarget::Image(image_handle.clone()),
+                // order: -1,
+                // target: RenderTarget::Image(image_handle.clone()),
                 ..default()
             },
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 15.0))
-                .looking_at(Vec3::ZERO, Vec3::Y),
             ..default()
         },
-        first_pass_layer,
-    ));
+        // first_pass_layer
+    )
+    );
 
     let cube_size = 4.0;
     let cube_handle = meshes.add(Mesh::from(shape::Box::new(cube_size, cube_size, cube_size)));
@@ -137,19 +217,19 @@ fn setup(
     ));
 
     // The main pass camera.
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
+    // commands.spawn(Camera3dBundle {
+    //     transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+    //     ..default()
+    // });
 }
 
 /// Rotates the inner cube (first pass)
-fn rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<FirstPassCube>>) {
-    for mut transform in &mut query {
-        transform.rotate_x(1.5 * time.delta_seconds());
-        transform.rotate_z(1.3 * time.delta_seconds());
-    }
-}
+// fn rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<FirstPassCube>>) {
+//     for mut transform in &mut query {
+//         transform.rotate_x(1.5 * time.delta_seconds());
+//         transform.rotate_z(1.3 * time.delta_seconds());
+//     }
+// }
 
 /// Rotates the outer cube (main pass)
 fn cube_rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<MainPassCube>>) {
