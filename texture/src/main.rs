@@ -128,7 +128,8 @@ fn setup(
         color: Color::WHITE,
     };
     let box_size = Vec2::new(300.0, 200.0);
-    let box_position = Vec2::new(0.0, -250.0);
+    // let box_position = Vec2::new(0.0, -250.0);
+    let box_position = Vec2::new(0.0, 0.0);
     commands
         .spawn((SpriteBundle {
             sprite: Sprite {
@@ -143,7 +144,7 @@ fn setup(
         first_pass_layer
         ))
         .with_children(|builder| {
-            builder.spawn(Text2dBundle {
+            builder.spawn((Text2dBundle {
                 text: Text {
                     sections: vec![TextSection::new(
                         "this text wraps in the box\n(Unicode linebreaks)",
@@ -159,7 +160,9 @@ fn setup(
                 // ensure the text is drawn on top of the box
                 transform: Transform::from_translation(Vec3::Z),
                 ..default()
-            });
+            },
+            FirstPassText,
+            first_pass_layer));
         });
 
     // 2d camera
