@@ -1,200 +1,160 @@
-//! Simple text input support
-//!
-//! Return creates a new line, backspace removes the last character.
-//! Clicking toggle IME (Input Method Editor) support, but the font used as limited support of characters.
-//! You should change the provided font with another one to test other languages input.
+//! Shows how to render to a texture. Useful for mirrors, UI, or exporting images.
 
-use bevy::{input::keyboard::KeyboardInput, prelude::*};
+use std::f32::consts::PI;
+
+use bevy::{
+    core_pipeline::clear_color::ClearColorConfig,
+    prelude::*,
+    render::{
+        camera::RenderTarget,
+        render_resource::{
+            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+        },
+        view::RenderLayers,
+    },
+};
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_systems(Startup, setup_scene)
-        .add_systems(
-            Update,
-            (
-                toggle_ime,
-                listen_ime_events,
-                listen_received_character_events,
-                listen_keyboard_input_events,
-                bubbling_text,
-            ),
-        )
+        .add_systems(Startup, setup)
+        .add_systems(Update, (cube_rotator_system, rotator_system))
         .run();
 }
 
-fn setup_scene(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(Camera2dBundle::default());
+// Marks the first pass cube (rendered to a texture.)
+#[derive(Component)]
+struct FirstPassCube;
 
-    let font = asset_server.load("fonts/FiraMono-Medium.ttf");
+// Marks the main pass cube, to which the texture is applied.
+#[derive(Component)]
+struct MainPassCube;
 
-    commands.spawn(
-        TextBundle::from_sections([
-            TextSection {
-                value: "IME Enabled: ".to_string(),
-                style: TextStyle {
-                    font: font.clone_weak(),
-                    font_size: 20.0,
-                    color: Color::WHITE,
-                },
-            },
-            TextSection {
-                value: "false\n".to_string(),
-                style: TextStyle {
-                    font: font.clone_weak(),
-                    font_size: 30.0,
-                    color: Color::WHITE,
-                },
-            },
-            TextSection {
-                value: "IME Active: ".to_string(),
-                style: TextStyle {
-                    font: font.clone_weak(),
-                    font_size: 20.0,
-                    color: Color::WHITE,
-                },
-            },
-            TextSection {
-                value: "false\n".to_string(),
-                style: TextStyle {
-                    font: font.clone_weak(),
-                    font_size: 30.0,
-                    color: Color::WHITE,
-                },
-            },
-            TextSection {
-                value: "click to toggle IME, press return to start a new line\n\n".to_string(),
-                style: TextStyle {
-                    font: font.clone_weak(),
-                    font_size: 18.0,
-                    color: Color::WHITE,
-                },
-            },
-            TextSection {
-                value: "".to_string(),
-                style: TextStyle {
-                    font,
-                    font_size: 25.0,
-                    color: Color::WHITE,
-                },
-            },
-        ])
-        .with_style(Style {
-            position_type: PositionType::Absolute,
-            top: Val::Px(10.0),
-            left: Val::Px(10.0),
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    let size = Extent3d {
+        width: 512,
+        height: 512,
+        ..default()
+    };
+
+    // This is the texture that will be rendered to.
+    let mut image = Image {
+        texture_descriptor: TextureDescriptor {
+            label: None,
+            size,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Bgra8UnormSrgb,
+            mip_level_count: 1,
+            sample_count: 1,
+            usage: TextureUsages::TEXTURE_BINDING
+                | TextureUsages::COPY_DST
+                | TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        },
+        ..default()
+    };
+
+    // fill image.data with zeroes
+    image.resize(size);
+
+    let image_handle = images.add(image);
+
+    let cube_handle = meshes.add(Mesh::from(shape::Cube { size: 4.0 }));
+    let cube_material_handle = materials.add(StandardMaterial {
+        base_color: Color::rgb(0.8, 0.7, 0.6),
+        reflectance: 0.02,
+        unlit: false,
+        ..default()
+    });
+
+    // This specifies the layer used for the first pass, which will be attached to the first pass camera and cube.
+    let first_pass_layer = RenderLayers::layer(1);
+
+    // The cube that will be rendered to the texture.
+    commands.spawn((
+        PbrBundle {
+            mesh: cube_handle,
+            material: cube_material_handle,
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
             ..default()
-        }),
-    );
+        },
+        FirstPassCube,
+        first_pass_layer,
+    ));
 
-    commands.spawn(Text2dBundle {
-        text: Text::from_section(
-            "".to_string(),
-            TextStyle {
-                font: asset_server.load("fonts/FiraMono-Medium.ttf"),
-                font_size: 100.0,
-                color: Color::WHITE,
+    // Light
+    // NOTE: Currently lights are shared between passes - see https://github.com/bevyengine/bevy/issues/3462
+    commands.spawn(PointLightBundle {
+        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 10.0)),
+        ..default()
+    });
+
+    commands.spawn((
+        Camera3dBundle {
+            camera_3d: Camera3d {
+                clear_color: ClearColorConfig::Custom(Color::WHITE),
+                ..default()
             },
-        ),
+            camera: Camera {
+                // render before the "main pass" camera
+                order: -1,
+                target: RenderTarget::Image(image_handle.clone()),
+                ..default()
+            },
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 15.0))
+                .looking_at(Vec3::ZERO, Vec3::Y),
+            ..default()
+        },
+        first_pass_layer,
+    ));
+
+    let cube_size = 4.0;
+    let cube_handle = meshes.add(Mesh::from(shape::Box::new(cube_size, cube_size, cube_size)));
+
+    // This material has the texture that has been rendered.
+    let material_handle = materials.add(StandardMaterial {
+        base_color_texture: Some(image_handle),
+        reflectance: 0.02,
+        unlit: false,
+        ..default()
+    });
+
+    // Main pass cube, with material containing the rendered first pass texture.
+    commands.spawn((
+        PbrBundle {
+            mesh: cube_handle,
+            material: material_handle,
+            transform: Transform::from_xyz(0.0, 0.0, 1.5)
+                .with_rotation(Quat::from_rotation_x(-PI / 5.0)),
+            ..default()
+        },
+        MainPassCube,
+    ));
+
+    // The main pass camera.
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
 }
 
-fn toggle_ime(
-    input: Res<Input<MouseButton>>,
-    mut windows: Query<&mut Window>,
-    mut text: Query<&mut Text, With<Node>>,
-) {
-    if input.just_pressed(MouseButton::Left) {
-        let mut window = windows.single_mut();
-
-        window.ime_position = window.cursor_position().unwrap();
-        window.ime_enabled = !window.ime_enabled;
-
-        let mut text = text.single_mut();
-        text.sections[1].value = format!("{}\n", window.ime_enabled);
+/// Rotates the inner cube (first pass)
+fn rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<FirstPassCube>>) {
+    for mut transform in &mut query {
+        transform.rotate_x(1.5 * time.delta_seconds());
+        transform.rotate_z(1.3 * time.delta_seconds());
     }
 }
 
-#[derive(Component)]
-struct Bubble {
-    timer: Timer,
-}
-
-#[derive(Component)]
-struct ImePreedit;
-
-fn bubbling_text(
-    mut commands: Commands,
-    mut bubbles: Query<(Entity, &mut Transform, &mut Bubble)>,
-    time: Res<Time>,
-) {
-    for (entity, mut transform, mut bubble) in bubbles.iter_mut() {
-        if bubble.timer.tick(time.delta()).just_finished() {
-            commands.entity(entity).despawn();
-        }
-        transform.translation.y += time.delta_seconds() * 100.0;
-    }
-}
-
-fn listen_ime_events(
-    mut events: EventReader<Ime>,
-    mut status_text: Query<&mut Text, With<Node>>,
-    mut edit_text: Query<&mut Text, (Without<Node>, Without<Bubble>)>,
-) {
-    for event in events.iter() {
-        match event {
-            Ime::Preedit { value, cursor, .. } if !cursor.is_none() => {
-                status_text.single_mut().sections[5].value = format!("IME buffer: {value}");
-            }
-            Ime::Preedit { cursor, .. } if cursor.is_none() => {
-                status_text.single_mut().sections[5].value = "".to_string();
-            }
-            Ime::Commit { value, .. } => {
-                edit_text.single_mut().sections[0].value.push_str(value);
-            }
-            Ime::Enabled { .. } => {
-                status_text.single_mut().sections[3].value = "true\n".to_string();
-            }
-            Ime::Disabled { .. } => {
-                status_text.single_mut().sections[3].value = "false\n".to_string();
-            }
-            _ => (),
-        }
-    }
-}
-
-fn listen_received_character_events(
-    mut events: EventReader<ReceivedCharacter>,
-    mut edit_text: Query<&mut Text, (Without<Node>, Without<Bubble>)>,
-) {
-    for event in events.iter() {
-        edit_text.single_mut().sections[0].value.push(event.char);
-    }
-}
-
-fn listen_keyboard_input_events(
-    mut commands: Commands,
-    mut events: EventReader<KeyboardInput>,
-    mut edit_text: Query<(Entity, &mut Text), (Without<Node>, Without<Bubble>)>,
-) {
-    for event in events.iter() {
-        match event.key_code {
-            Some(KeyCode::Return) => {
-                let (entity, text) = edit_text.single();
-                commands.entity(entity).insert(Bubble {
-                    timer: Timer::from_seconds(5.0, TimerMode::Once),
-                });
-
-                commands.spawn(Text2dBundle {
-                    text: Text::from_section("".to_string(), text.sections[0].style.clone()),
-                    ..default()
-                });
-            }
-            Some(KeyCode::Back) => {
-                edit_text.single_mut().1.sections[0].value.pop();
-            }
-            _ => continue,
-        }
+/// Rotates the outer cube (main pass)
+fn cube_rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<MainPassCube>>) {
+    for mut transform in &mut query {
+        transform.rotate_x(1.0 * time.delta_seconds());
+        transform.rotate_y(0.7 * time.delta_seconds());
     }
 }
