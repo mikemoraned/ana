@@ -1,103 +1,200 @@
-//! This example illustrates how to create UI text and update it in a system.
+//! Simple text input support
 //!
-//! It displays the current FPS in the top left corner, as well as text that changes color
-//! in the bottom right. For text within a scene, please see the text2d example.
+//! Return creates a new line, backspace removes the last character.
+//! Clicking toggle IME (Input Method Editor) support, but the font used as limited support of characters.
+//! You should change the provided font with another one to test other languages input.
 
-use bevy::{
-    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
-    prelude::*,
-};
+use bevy::{input::keyboard::KeyboardInput, prelude::*};
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, FrameTimeDiagnosticsPlugin))
-        .add_systems(Startup, setup)
-        .add_systems(Update, (text_update_system, text_color_system))
+        .add_plugins(DefaultPlugins)
+        .add_systems(Startup, setup_scene)
+        .add_systems(
+            Update,
+            (
+                toggle_ime,
+                listen_ime_events,
+                listen_received_character_events,
+                listen_keyboard_input_events,
+                bubbling_text,
+            ),
+        )
         .run();
 }
 
-// A unit struct to help identify the FPS UI component, since there may be many Text components
-#[derive(Component)]
-struct FpsText;
-
-// A unit struct to help identify the color-changing Text component
-#[derive(Component)]
-struct ColorText;
-
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // UI camera
+fn setup_scene(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
-    // Text with one section
-    commands.spawn((
-        // Create a TextBundle that has a Text with a single section.
-        TextBundle::from_section(
-            // Accepts a `String` or any type that converts into a `String`, such as `&str`
-            "hello\nbevy!",
+
+    let font = asset_server.load("fonts/FiraMono-Medium.ttf");
+
+    commands.spawn(
+        TextBundle::from_sections([
+            TextSection {
+                value: "IME Enabled: ".to_string(),
+                style: TextStyle {
+                    font: font.clone_weak(),
+                    font_size: 20.0,
+                    color: Color::WHITE,
+                },
+            },
+            TextSection {
+                value: "false\n".to_string(),
+                style: TextStyle {
+                    font: font.clone_weak(),
+                    font_size: 30.0,
+                    color: Color::WHITE,
+                },
+            },
+            TextSection {
+                value: "IME Active: ".to_string(),
+                style: TextStyle {
+                    font: font.clone_weak(),
+                    font_size: 20.0,
+                    color: Color::WHITE,
+                },
+            },
+            TextSection {
+                value: "false\n".to_string(),
+                style: TextStyle {
+                    font: font.clone_weak(),
+                    font_size: 30.0,
+                    color: Color::WHITE,
+                },
+            },
+            TextSection {
+                value: "click to toggle IME, press return to start a new line\n\n".to_string(),
+                style: TextStyle {
+                    font: font.clone_weak(),
+                    font_size: 18.0,
+                    color: Color::WHITE,
+                },
+            },
+            TextSection {
+                value: "".to_string(),
+                style: TextStyle {
+                    font,
+                    font_size: 25.0,
+                    color: Color::WHITE,
+                },
+            },
+        ])
+        .with_style(Style {
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.0),
+            left: Val::Px(10.0),
+            ..default()
+        }),
+    );
+
+    commands.spawn(Text2dBundle {
+        text: Text::from_section(
+            "".to_string(),
             TextStyle {
-                // This font is loaded and will be used instead of the default font.
-                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                font: asset_server.load("fonts/FiraMono-Medium.ttf"),
                 font_size: 100.0,
                 color: Color::WHITE,
             },
-        ) // Set the alignment of the Text
-        .with_text_alignment(TextAlignment::Center)
-        // Set the style of the TextBundle itself.
-        .with_style(Style {
-            position_type: PositionType::Absolute,
-            bottom: Val::Px(5.0),
-            right: Val::Px(15.0),
-            ..default()
-        }),
-        ColorText,
-    ));
-    // Text with multiple sections
-    commands.spawn((
-        // Create a TextBundle that has a Text with a list of sections.
-        TextBundle::from_sections([
-            TextSection::new(
-                "FPS: ",
-                TextStyle {
-                    // This font is loaded and will be used instead of the default font.
-                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: 60.0,
-                    color: Color::WHITE,
-                },
-            ),
-            TextSection::from_style(TextStyle {
-                font_size: 60.0,
-                color: Color::GOLD,
-                // If no font is specified, it will use the default font.
-                ..default()
-            }),
-        ]),
-        FpsText,
-    ));
+        ),
+        ..default()
+    });
 }
 
-fn text_color_system(time: Res<Time>, mut query: Query<&mut Text, With<ColorText>>) {
-    for mut text in &mut query {
-        let seconds = time.elapsed_seconds();
+fn toggle_ime(
+    input: Res<Input<MouseButton>>,
+    mut windows: Query<&mut Window>,
+    mut text: Query<&mut Text, With<Node>>,
+) {
+    if input.just_pressed(MouseButton::Left) {
+        let mut window = windows.single_mut();
 
-        // Update the color of the first and only section.
-        text.sections[0].style.color = Color::Rgba {
-            red: (1.25 * seconds).sin() / 2.0 + 0.5,
-            green: (0.75 * seconds).sin() / 2.0 + 0.5,
-            blue: (0.50 * seconds).sin() / 2.0 + 0.5,
-            alpha: 1.0,
-        };
+        window.ime_position = window.cursor_position().unwrap();
+        window.ime_enabled = !window.ime_enabled;
+
+        let mut text = text.single_mut();
+        text.sections[1].value = format!("{}\n", window.ime_enabled);
     }
 }
 
-fn text_update_system(
-    diagnostics: Res<DiagnosticsStore>,
-    mut query: Query<&mut Text, With<FpsText>>,
+#[derive(Component)]
+struct Bubble {
+    timer: Timer,
+}
+
+#[derive(Component)]
+struct ImePreedit;
+
+fn bubbling_text(
+    mut commands: Commands,
+    mut bubbles: Query<(Entity, &mut Transform, &mut Bubble)>,
+    time: Res<Time>,
 ) {
-    for mut text in &mut query {
-        if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
-            if let Some(value) = fps.smoothed() {
-                // Update the value of the second section
-                text.sections[1].value = format!("{value:.2}");
+    for (entity, mut transform, mut bubble) in bubbles.iter_mut() {
+        if bubble.timer.tick(time.delta()).just_finished() {
+            commands.entity(entity).despawn();
+        }
+        transform.translation.y += time.delta_seconds() * 100.0;
+    }
+}
+
+fn listen_ime_events(
+    mut events: EventReader<Ime>,
+    mut status_text: Query<&mut Text, With<Node>>,
+    mut edit_text: Query<&mut Text, (Without<Node>, Without<Bubble>)>,
+) {
+    for event in events.iter() {
+        match event {
+            Ime::Preedit { value, cursor, .. } if !cursor.is_none() => {
+                status_text.single_mut().sections[5].value = format!("IME buffer: {value}");
             }
+            Ime::Preedit { cursor, .. } if cursor.is_none() => {
+                status_text.single_mut().sections[5].value = "".to_string();
+            }
+            Ime::Commit { value, .. } => {
+                edit_text.single_mut().sections[0].value.push_str(value);
+            }
+            Ime::Enabled { .. } => {
+                status_text.single_mut().sections[3].value = "true\n".to_string();
+            }
+            Ime::Disabled { .. } => {
+                status_text.single_mut().sections[3].value = "false\n".to_string();
+            }
+            _ => (),
+        }
+    }
+}
+
+fn listen_received_character_events(
+    mut events: EventReader<ReceivedCharacter>,
+    mut edit_text: Query<&mut Text, (Without<Node>, Without<Bubble>)>,
+) {
+    for event in events.iter() {
+        edit_text.single_mut().sections[0].value.push(event.char);
+    }
+}
+
+fn listen_keyboard_input_events(
+    mut commands: Commands,
+    mut events: EventReader<KeyboardInput>,
+    mut edit_text: Query<(Entity, &mut Text), (Without<Node>, Without<Bubble>)>,
+) {
+    for event in events.iter() {
+        match event.key_code {
+            Some(KeyCode::Return) => {
+                let (entity, text) = edit_text.single();
+                commands.entity(entity).insert(Bubble {
+                    timer: Timer::from_seconds(5.0, TimerMode::Once),
+                });
+
+                commands.spawn(Text2dBundle {
+                    text: Text::from_section("".to_string(), text.sections[0].style.clone()),
+                    ..default()
+                });
+            }
+            Some(KeyCode::Back) => {
+                edit_text.single_mut().1.sections[0].value.pop();
+            }
+            _ => continue,
         }
     }
 }
