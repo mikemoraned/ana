@@ -121,21 +121,6 @@ fn setup(
 
     // 2d text
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-    // let text_style = TextStyle {
-    //     font: font.clone(),
-    //     font_size: 60.0,
-    //     color: Color::WHITE,
-    // };
-    // let text_alignment = TextAlignment::Center;
-    // commands.spawn((
-    //     Text2dBundle {
-    //         text: Text::from_section("scale", text_style).with_alignment(text_alignment),
-    //         ..default()
-    //     },
-    //     FirstPassText,
-    //     first_pass_layer
-    // ));
-
     // Demonstrate text wrapping
     let slightly_smaller_text_style = TextStyle {
         font,
@@ -145,7 +130,7 @@ fn setup(
     let box_size = Vec2::new(300.0, 200.0);
     let box_position = Vec2::new(0.0, -250.0);
     commands
-        .spawn(SpriteBundle {
+        .spawn((SpriteBundle {
             sprite: Sprite {
                 color: Color::rgb(0.25, 0.25, 0.75),
                 custom_size: Some(Vec2::new(box_size.x, box_size.y)),
@@ -153,7 +138,10 @@ fn setup(
             },
             transform: Transform::from_translation(box_position.extend(0.0)),
             ..default()
-        })
+        },
+        FirstPassText,
+        first_pass_layer
+        ))
         .with_children(|builder| {
             builder.spawn(Text2dBundle {
                 text: Text {
@@ -183,13 +171,13 @@ fn setup(
             },
             camera: Camera {
                 // render before the "main pass" camera
-                // order: -1,
-                // target: RenderTarget::Image(image_handle.clone()),
+                order: -1,
+                target: RenderTarget::Image(image_handle.clone()),
                 ..default()
             },
             ..default()
         },
-        // first_pass_layer
+        first_pass_layer
     )
     );
 
@@ -217,10 +205,10 @@ fn setup(
     ));
 
     // The main pass camera.
-    // commands.spawn(Camera3dBundle {
-    //     transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-    //     ..default()
-    // });
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    });
 }
 
 /// Rotates the inner cube (first pass)
