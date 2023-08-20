@@ -11,7 +11,7 @@ use bevy::{
             Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
         },
         view::RenderLayers,
-    }, reflect::erased_serde::__private::serde::__private::de, text::{BreakLineOn, Text2dBounds},
+    }, text::{BreakLineOn, Text2dBounds},
 };
 
 fn main() {
@@ -22,10 +22,6 @@ fn main() {
         .add_systems(Update, cube_rotator_system)
         .run();
 }
-
-// Marks the first pass cube (rendered to a texture.)
-// #[derive(Component)]
-// struct FirstPassCube;
 
 // Marks the first pass text (rendered to a texture.)
 #[derive(Component)]
@@ -70,28 +66,8 @@ fn setup(
 
     let image_handle = images.add(image);
 
-    // let cube_handle = meshes.add(Mesh::from(shape::Cube { size: 4.0 }));
-    // let cube_material_handle = materials.add(StandardMaterial {
-    //     base_color: Color::rgb(0.8, 0.7, 0.6),
-    //     reflectance: 0.02,
-    //     unlit: false,
-    //     ..default()
-    // });
-
     // This specifies the layer used for the first pass, which will be attached to the first pass camera and cube.
     let first_pass_layer = RenderLayers::layer(1);
-
-    // The cube that will be rendered to the texture.
-    // commands.spawn((
-    //     PbrBundle {
-    //         mesh: cube_handle,
-    //         material: cube_material_handle,
-    //         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
-    //         ..default()
-    //     },
-    //     FirstPassCube,
-    //     first_pass_layer,
-    // ));
 
     // Light
     // NOTE: Currently lights are shared between passes - see https://github.com/bevyengine/bevy/issues/3462
@@ -99,25 +75,6 @@ fn setup(
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 10.0)),
         ..default()
     });
-
-    // commands.spawn((
-    //     Camera3dBundle {
-    //         camera_3d: Camera3d {
-    //             clear_color: ClearColorConfig::Custom(Color::WHITE),
-    //             ..default()
-    //         },
-    //         camera: Camera {
-    //             // render before the "main pass" camera
-    //             order: -1,
-    //             target: RenderTarget::Image(image_handle.clone()),
-    //             ..default()
-    //         },
-    //         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 15.0))
-    //             .looking_at(Vec3::ZERO, Vec3::Y),
-    //         ..default()
-    //     },
-    //     first_pass_layer,
-    // ));
 
     // 2d text
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
@@ -128,7 +85,6 @@ fn setup(
         color: Color::WHITE,
     };
     let box_size = Vec2::new(300.0, 200.0);
-    // let box_position = Vec2::new(0.0, -250.0);
     let box_position = Vec2::new(0.0, 0.0);
     commands
         .spawn((SpriteBundle {
@@ -213,14 +169,6 @@ fn setup(
         ..default()
     });
 }
-
-/// Rotates the inner cube (first pass)
-// fn rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<FirstPassCube>>) {
-//     for mut transform in &mut query {
-//         transform.rotate_x(1.5 * time.delta_seconds());
-//         transform.rotate_z(1.3 * time.delta_seconds());
-//     }
-// }
 
 /// Rotates the outer cube (main pass)
 fn cube_rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<MainPassCube>>) {
