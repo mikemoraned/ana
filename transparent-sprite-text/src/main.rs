@@ -2,6 +2,8 @@
 //! Shows the effects of different blend modes.
 //! The `fade_transparency` system smoothly changes the transparency over time.
 
+use std::f32::consts::PI;
+
 use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCameraPlugin, PanOrbitCamera};
 
@@ -18,6 +20,7 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>
 ) {
     // opaque plane, uses `alpha_mode: Opaque` by default
     commands.spawn(PbrBundle {
@@ -26,15 +29,61 @@ fn setup(
         ..default()
     });
 
-    let transparent_mesh = shape::Plane::from_size(6.0);
-    let transparent_material = Color::rgba(1.0, 0.5, 0.3, 0.5);
+    // load a texture and retrieve its aspect ratio
+    let texture_handle = asset_server.load("branding/bevy_logo_dark_big.png");
+    let aspect = 0.25;
 
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(transparent_mesh.into()),
-        material: materials.add(transparent_material.into()),
-        transform: Transform::from_xyz(-1.0, 0.5, -1.5),
+    // create a new quad mesh. this is what we will apply the texture to
+    let quad_width = 8.0;
+    let quad_handle = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(
+        quad_width,
+        quad_width * aspect,
+    ))));
+
+    // this material renders the texture normally
+    let material_handle = materials.add(StandardMaterial {
+        base_color_texture: Some(texture_handle.clone()),
+        alpha_mode: AlphaMode::Blend,
+        unlit: true,
         ..default()
     });
+
+    // textured quad - normal
+    commands.spawn(PbrBundle {
+        mesh: quad_handle.clone(),
+        material: material_handle,
+        transform: Transform::from_xyz(0.0, 0.0, 1.5)
+            .with_rotation(Quat::from_rotation_x(-PI / 5.0)),
+        ..default()
+    });
+
+    // let transparent_mesh = shape::Plane::from_size(6.0);
+    // let transparent_material = Color::rgba(1.0, 0.5, 0.3, 0.5);
+    // let sprite_handle = asset_server.load("branding/icon.png");
+    // let transparent_material = materials.add(StandardMaterial {
+    //     base_color_texture: Some(sprite_handle),
+    //     reflectance: 0.02,
+    //     unlit: false,
+    //     ..default()
+    // });
+
+    // commands.spawn(PbrBundle {
+    //     mesh: meshes.add(transparent_mesh.into()),
+    //     material: transparent_material,
+    //     transform: Transform::from_xyz(-1.0, 0.5, -1.5),
+    //     ..default()
+    // });
+    // let sprite_handle = asset_server.load("branding/icon.png");
+    // commands.spawn(SpriteBundle {
+    //     sprite: Sprite {
+    //         // Alpha channel of the color controls transparency.
+    //         color: Color::rgba(0.0, 0.0, 1.0, 0.7),
+    //         ..default()
+    //     },
+    //     texture: sprite_handle.clone(),
+    //     transform: Transform::from_xyz(-1.0, 0.5, -1.5),
+    //     ..default()
+    // });
 
     // transparent sphere, uses `alpha_mode: Mask(f32)`
     // commands.spawn(PbrBundle {
