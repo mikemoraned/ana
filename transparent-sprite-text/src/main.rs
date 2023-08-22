@@ -24,8 +24,9 @@ fn setup(
 ) {
     // opaque plane, uses `alpha_mode: Opaque` by default
     commands.spawn(PbrBundle {
-        mesh: meshes.add(shape::Plane::from_size(6.0).into()),
+        mesh: meshes.add(shape::Plane::from_size(12.0).into()),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+        transform: Transform::from_xyz(0.0, -2.0, 0.0),
         ..default()
     });
 
