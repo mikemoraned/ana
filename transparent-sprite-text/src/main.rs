@@ -3,11 +3,13 @@
 //! The `fade_transparency` system smoothly changes the transparency over time.
 
 use bevy::prelude::*;
+use bevy_panorbit_camera::{PanOrbitCameraPlugin, PanOrbitCamera};
 
 fn main() {
     App::new()
         .insert_resource(Msaa::default())
         .add_plugins(DefaultPlugins)
+        .add_plugins(PanOrbitCameraPlugin)
         .add_systems(Startup, setup)
         .run();
 }
@@ -109,9 +111,9 @@ fn setup(
         ..default()
     });
     // camera
-    commands.spawn(Camera3dBundle {
+    commands.spawn((Camera3dBundle {
         transform: Transform::from_xyz(-2.0, 3.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
-    });
+    }, PanOrbitCamera::default()));
 }
 
