@@ -27,34 +27,6 @@ fn setup(
         ..default()
     });
 
-    // load a texture and retrieve its aspect ratio
-    // let texture_handle = asset_server.load("branding/bevy_logo_dark_big.png");
-    // let aspect = 0.25;
-
-    // create a new quad mesh. this is what we will apply the texture to
-    // let quad_width = 8.0;
-    // let quad_handle = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(
-    //     quad_width,
-    //     quad_width * aspect,
-    // ))));
-
-    // this material renders the texture normally
-    // let material_handle = materials.add(StandardMaterial {
-    //     base_color_texture: Some(texture_handle.clone()),
-    //     alpha_mode: AlphaMode::Blend,
-    //     unlit: true,
-    //     ..default()
-    // });
-
-    // textured quad - normal
-    // commands.spawn(PbrBundle {
-    //     mesh: quad_handle.clone(),
-    //     material: material_handle,
-    //     transform: Transform::from_xyz(0.0, 0.0, 1.5)
-    //         .with_rotation(Quat::from_rotation_x(-PI / 5.0)),
-    //     ..default()
-    // });
-
     // light
     commands.spawn(PointLightBundle {
         point_light: PointLight {
@@ -166,17 +138,6 @@ fn setup(
         quad_width * aspect,
     ))));
 
-    // this material renders the texture normally
-    // let material_handle = materials.add(StandardMaterial {
-    //     base_color_texture: Some(texture_handle.clone()),
-    //     alpha_mode: AlphaMode::Blend,
-    //     unlit: true,
-    //     ..default()
-    // });
-
-    // let cube_size = 4.0;
-    // let cube_handle = meshes.add(Mesh::from(shape::Box::new(cube_size, cube_size, cube_size)));
-
     // This material has the texture that has been rendered.
     let material_handle = materials.add(StandardMaterial {
         base_color_texture: Some(image_handle),
@@ -193,17 +154,6 @@ fn setup(
             .with_rotation(Quat::from_rotation_x(-PI / 5.0)),
         ..default()
     });
-
-    // // Main pass cube, with material containing the rendered first pass texture.
-    // commands.spawn(
-    //     PbrBundle {
-    //         mesh: cube_handle,
-    //         material: material_handle,
-    //         transform: Transform::from_xyz(0.0, 0.0, 1.5)
-    //             .with_rotation(Quat::from_rotation_x(-PI / 5.0)),
-    //         ..default()
-    //     }
-    // );
 
     // camera
     commands.spawn((Camera3dBundle {
