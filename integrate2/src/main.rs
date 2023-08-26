@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let png_image_bytes = 
         layout_text_as_png_image(message, 
         28.0, 40.0, 
-        320.0, 100.0);
+        200.0, 100.0);
 
     let mut file = OpenOptions::new()
         .create(true)
@@ -64,7 +64,7 @@ fn setup(
     commands.spawn(PbrBundle {
         mesh: quad_handle.clone(),
         material: material_handle,
-        transform: Transform::from_xyz(0.0, 0.0, 1.5)
+        transform: Transform::from_xyz(0.0, 0.0, 0.0)
             .with_rotation(Quat::from_rotation_x(-PI / 5.0)),
         ..default()
     });
@@ -76,17 +76,16 @@ fn setup(
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(4.0, 8.0, 4.0),
+        transform: Transform::from_xyz(0.0, 8.0, 4.0),
         ..default()
     });
     // camera
     commands.spawn((Camera3dBundle {
-        transform: Transform::from_xyz(-2.0, 3.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_xyz(0.0, 14.0, 0.0)
+            .looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     }, PanOrbitCamera::default()));
 }
-
-
 
 fn layout_text_as_png_image(
     s: &str, 
