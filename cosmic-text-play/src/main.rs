@@ -1,5 +1,7 @@
 use cosmic_text::{Attrs, Color, FontSystem, SwashCache, Buffer, Metrics, Shaping};
 use image::Rgb;
+use imageproc::drawing::draw_filled_rect_mut;
+use imageproc::rect::Rect;
 
 fn main() {
 
@@ -46,8 +48,10 @@ fn main() {
     buffer.draw(&mut swash_cache, text_color, |x, y, w, h, color| {
         println!("{x},{y},{w},{h},{color:?}");
         // Fill in your code here for drawing rectangles
-        let pixel = imgbuf.get_pixel_mut((x + 1) as u32, (y + 1) as u32);
-        *pixel = image::Rgb([0u8, 0u8, 0u8]);
+        let v = [color.r(), color.g(), color.b(), color.a()];
+        let rgba = image::Rgba(v);
+        println!("{v:?} -> {rgba:?}");
+        draw_filled_rect_mut(&mut imgbuf, Rect::at(x, y).of_size(w, h), rgba);
     });
 
     imgbuf.save("image.png").unwrap();
