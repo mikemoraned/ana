@@ -1,4 +1,5 @@
 use cosmic_text::{Attrs, Color, FontSystem, SwashCache, Buffer, Metrics, Shaping};
+use image::Rgb;
 
 fn main() {
 
@@ -39,8 +40,15 @@ fn main() {
     // Create a default text color
     let text_color = Color::rgb(0xFF, 0xFF, 0xFF);
 
+    let mut imgbuf: image::ImageBuffer<_, Vec<_>> = image::ImageBuffer::new(80 * 2, 25 * 2);
+
     // Draw the buffer (for performance, instead use SwashCache directly)
     buffer.draw(&mut swash_cache, text_color, |x, y, w, h, color| {
+        println!("{x},{y},{w},{h},{color:?}");
         // Fill in your code here for drawing rectangles
+        let pixel = imgbuf.get_pixel_mut((x + 1) as u32, (y + 1) as u32);
+        *pixel = image::Rgb([0u32, 0u32, 0u32]);
     });
+
+    // imgbuf.save("image.png").unwrap();
 }
