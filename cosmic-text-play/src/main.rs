@@ -21,6 +21,8 @@ fn main() {
 
     println!("{:?}", font_system.db());
 
+    font_system.db_mut().load_font_file("assets/fonts/Noto_Emoji/NotoEmoji-VariableFont_wght.ttf").unwrap();
+
     // A SwashCache stores rasterized glyphs, create one per application
     let mut swash_cache = SwashCache::new();
 
@@ -35,18 +37,17 @@ fn main() {
     let mut buffer = buffer.borrow_with(&mut font_system);
 
     // Set a size for the text buffer, in pixels
-    let buf_width = 80.0 * 2.0;
-    let buf_height = 25.0 * 2.0;
+    let buf_width = 80.0 * 4.0;
+    let buf_height = 25.0 * 4.0;
     buffer.set_size(buf_width, buf_height);
 
     // Attributes indicate what font to choose
     let mut attrs = Attrs::new();
 
-    attrs = attrs.family(cosmic_text::Family::Name("Fira Mono"));
+    attrs = attrs.family(cosmic_text::Family::Name("Noto Emoji"));
 
     // Add some text!
-    // buffer.set_text("Hello, Rust! 🦀\n", attrs, Shaping::Advanced);
-    buffer.set_text("Hello, Rust! 🦀\n", attrs, Shaping::Basic);
+    buffer.set_text("Hello, Rust! 🦀\n", attrs, Shaping::Advanced);
 
     // Perform shaping as desired
     buffer.shape_until_scroll();
