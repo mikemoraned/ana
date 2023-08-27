@@ -24,6 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .add_plugins(DefaultPlugins)
         .add_plugins(PanOrbitCameraPlugin)
         .add_systems(Startup, setup)
+        .add_systems(Update, debug)
         .run();
 
     Ok(())
@@ -70,21 +71,33 @@ fn setup(
     });
 
     // light
+    let light_position = Transform::from_xyz(0.0, 4.0, 14.0);
     commands.spawn(PointLightBundle {
         point_light: PointLight {
             intensity: 1500.0,
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(0.0, 4.0, 14.0),
+        transform: light_position.clone(),
         ..default()
     });
+
     // camera
     commands.spawn((Camera3dBundle {
         transform: Transform::from_xyz(0.0, 14.0, 0.0)
             .looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     }, PanOrbitCamera::default()));
+}
+
+fn debug(
+    mut gizmos: Gizmos
+) {
+    // TODO: get this dynamically later
+    let light_position = Vec3::new(0.0, 4.0, 14.0);
+    gizmos
+        .sphere(light_position, Quat::IDENTITY, 0.5, Color::WHITE)
+        .circle_segments(64);
 }
 
 fn layout_text_as_png_image(
