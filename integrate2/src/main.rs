@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .add_plugins(DefaultPlugins)
         .add_plugins(PanOrbitCameraPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, debug)
+        .add_systems(Update, (debug, light_movement))
         .run();
 
     Ok(())
@@ -94,6 +94,38 @@ fn setup(
             .looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     }, PanOrbitCamera::default()));
+}
+
+fn light_movement(
+    input: Res<Input<KeyCode>>,
+    time: Res<Time>,
+    mut query: Query<&mut Transform, With<Light>>,
+) {
+    for mut transform in &mut query {
+        let mut direction = Vec3::ZERO;
+        let mut changed = false;
+        if input.pressed(KeyCode::Up) {
+            direction.y += 1.0;
+            changed = true;
+        }
+        if input.pressed(KeyCode::Down) {
+            direction.y -= 1.0;
+            changed = true;
+        }
+        if input.pressed(KeyCode::Left) {
+            direction.z -= 1.0;
+            changed = true;
+        }
+        if input.pressed(KeyCode::Right) {
+            direction.z += 1.0;
+            changed = true;
+        }
+
+        transform.translation += time.delta_seconds() * 2.0 * direction;
+        if changed {
+            info!("new light position: {}", transform.translation);
+        }
+    }
 }
 
 fn debug(
