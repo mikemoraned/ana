@@ -6,11 +6,11 @@ use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCameraPlugin, PanOrbitCamera};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let message = "hello bevy\nworld!";
+    let message = "hello bevy world! how are you doing?";
     let png_image_bytes = 
         layout_text_as_png_image(message, 
         28.0, 40.0, 
-        200.0, 100.0);
+        200.0, 120.0);
 
     let mut file = OpenOptions::new()
         .create(true)
