@@ -64,8 +64,8 @@ fn setup(
     commands.spawn(PbrBundle {
         mesh: quad_handle.clone(),
         material: material_handle,
-        transform: Transform::from_xyz(0.0, 1.0, 6.0)
-            .with_rotation(Quat::from_rotation_x(-PI / 5.0)),
+        transform: Transform::from_xyz(0.0, 1.0, 7.0)
+            .with_rotation(Quat::from_rotation_x(-PI / 8.0)),
         ..default()
     });
 
@@ -76,7 +76,7 @@ fn setup(
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(0.0, 4.0, 12.0),
+        transform: Transform::from_xyz(0.0, 4.0, 14.0),
         ..default()
     });
     // camera
