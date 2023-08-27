@@ -24,11 +24,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         .add_plugins(DefaultPlugins)
         .add_plugins(PanOrbitCameraPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, debug)
+        .add_systems(Update, (debug, light_movement))
         .run();
 
     Ok(())
 }
+
+#[derive(Component)]
+struct Light;
 
 fn setup(
     mut commands: Commands,
@@ -72,15 +75,18 @@ fn setup(
 
     // light
     let light_position = Transform::from_xyz(0.0, 4.0, 14.0);
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 1500.0,
-            shadows_enabled: true,
+    commands.spawn((
+        PointLightBundle {
+            point_light: PointLight {
+                intensity: 1500.0,
+                shadows_enabled: true,
+                ..default()
+            },
+            transform: light_position.clone(),
             ..default()
         },
-        transform: light_position.clone(),
-        ..default()
-    });
+        Light)
+    );
 
     // camera
     commands.spawn((Camera3dBundle {
@@ -90,14 +96,47 @@ fn setup(
     }, PanOrbitCamera::default()));
 }
 
-fn debug(
-    mut gizmos: Gizmos
+fn light_movement(
+    input: Res<Input<KeyCode>>,
+    time: Res<Time>,
+    mut query: Query<&mut Transform, With<Light>>,
 ) {
-    // TODO: get this dynamically later
-    let light_position = Vec3::new(0.0, 4.0, 14.0);
-    gizmos
-        .sphere(light_position, Quat::IDENTITY, 0.5, Color::WHITE)
-        .circle_segments(64);
+    for mut transform in &mut query {
+        let mut direction = Vec3::ZERO;
+        let mut changed = false;
+        if input.pressed(KeyCode::Up) {
+            direction.y += 1.0;
+            changed = true;
+        }
+        if input.pressed(KeyCode::Down) {
+            direction.y -= 1.0;
+            changed = true;
+        }
+        if input.pressed(KeyCode::Left) {
+            direction.z -= 1.0;
+            changed = true;
+        }
+        if input.pressed(KeyCode::Right) {
+            direction.z += 1.0;
+            changed = true;
+        }
+
+        transform.translation += time.delta_seconds() * 2.0 * direction;
+        if changed {
+            info!("new light position: {}", transform.translation);
+        }
+    }
+}
+
+fn debug(
+    mut gizmos: Gizmos, query: Query<&Transform, With<Light>>
+) {
+    for transform in &query {
+        let light_position = transform.translation.clone();
+        gizmos
+            .sphere(light_position, Quat::IDENTITY, 0.5, Color::WHITE)
+            .circle_segments(64);
+    }    
 }
 
 fn layout_text_as_png_image(
