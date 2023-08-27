@@ -30,6 +30,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[derive(Component)]
+struct Light;
+
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -72,15 +75,18 @@ fn setup(
 
     // light
     let light_position = Transform::from_xyz(0.0, 4.0, 14.0);
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 1500.0,
-            shadows_enabled: true,
+    commands.spawn((
+        PointLightBundle {
+            point_light: PointLight {
+                intensity: 1500.0,
+                shadows_enabled: true,
+                ..default()
+            },
+            transform: light_position.clone(),
             ..default()
         },
-        transform: light_position.clone(),
-        ..default()
-    });
+        Light)
+    );
 
     // camera
     commands.spawn((Camera3dBundle {
@@ -91,13 +97,14 @@ fn setup(
 }
 
 fn debug(
-    mut gizmos: Gizmos
+    mut gizmos: Gizmos, query: Query<&Transform, With<Light>>
 ) {
-    // TODO: get this dynamically later
-    let light_position = Vec3::new(0.0, 4.0, 14.0);
-    gizmos
-        .sphere(light_position, Quat::IDENTITY, 0.5, Color::WHITE)
-        .circle_segments(64);
+    for transform in &query {
+        let light_position = transform.translation.clone();
+        gizmos
+            .sphere(light_position, Quat::IDENTITY, 0.5, Color::WHITE)
+            .circle_segments(64);
+    }    
 }
 
 fn layout_text_as_png_image(
