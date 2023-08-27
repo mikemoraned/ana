@@ -113,9 +113,13 @@ fn layout_text_as_png_image(
     let text_color = Color::rgb(0xFF, 0xFF, 0xFF);
 
     let mut imgbuf = image::ImageBuffer::new(width as u32, height as u32);
+    let bg = image::Rgba([255, 255, 255, 10]);
+    draw_filled_rect_mut(&mut imgbuf, 
+        Rect::at(0, 0).of_size(width as u32, height as u32), bg);
     buffer.draw(&mut swash_cache, text_color, |x, y, w, h, color| {
         let rgba = image::Rgba([color.r(), color.g(), color.b(), color.a()]);
-        draw_filled_rect_mut(&mut imgbuf, Rect::at(x, y).of_size(w, h), rgba);
+        draw_filled_rect_mut(&mut imgbuf, 
+            Rect::at(x, y).of_size(w, h), rgba);
     });
 
     let mut bytes: Vec<u8> = Vec::new();
